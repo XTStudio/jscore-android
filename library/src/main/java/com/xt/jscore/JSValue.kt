@@ -31,9 +31,11 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
             return
         }
         this.context.get()?.handler?.post {
-            if (!v8Value.runtime.isReleased && !v8Value.isReleased) {
-                v8Value.release()
-            }
+            try {
+                if (!v8Value.runtime.isReleased && !v8Value.isReleased) {
+                    v8Value.release()
+                }
+            } catch (e: Exception) {}
         }
     }
 
@@ -167,12 +169,14 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
     }
 
     private fun checkReleased(): Boolean {
-        (v8Value as? V8Object)?.let {
-            if (v8Value.isUndefined) {
-                return false
+        try {
+            (v8Value as? V8Object)?.let {
+                if (v8Value.isUndefined) {
+                    return false
+                }
+                return it.isReleased || it.runtime.isReleased
             }
-            return it.isReleased || it.runtime.isReleased
-        }
+        } catch (e: Exception) {}
         return false
     }
 
