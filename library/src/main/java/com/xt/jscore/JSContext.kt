@@ -1,40 +1,57 @@
 package com.xt.jscore
 
 import android.os.Handler
+import android.os.Looper
+import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.V8Value
 
 /**
  * Created by cuiminghui on 2018/7/19.
  */
-class JSContext: MutableMap<String, JSValue> {
+class JSContext: MutableMap<String, Any> {
 
     val runtime = V8.createV8Runtime("global")
 
-    val globalObject: JSValue = JSValue(runtime.getObject("global"))
+    val globalObject: JSValue
 
     var exceptionHandler: ((context: JSContext, exception: Exception) -> Unit)? = null
 
     var name: String = "No Name"
 
-    private val handler = Handler()
+    val handler: Handler
+
+    internal val releasables: MutableSet<Releasable>
 
     fun finalize() {
-        runtime.release(false)
+        handler.post {
+            releasables.forEach { it.release() }
+            runtime.release(false)
+        }
+    }
+
+    init {
+        if (Looper.myLooper() == null) {
+            Looper.prepare()
+        }
+        this.handler = Handler()
+        this.releasables = mutableSetOf()
+        this.globalObject = JSValue(runtime.getObject("global"), this)
     }
 
     fun evaluateScript(script: String): JSValue? {
         return try {
-            val returnValue = this.runtime.executeObjectScript(script)
-            JSValue(returnValue)
+            val returnValue = this.runtime.executeScript(script)
+            JSValue(returnValue, this)
         } catch (e: Exception) {
-            JSValue(V8.getUndefined())
+            this.exceptionHandler?.invoke(this, e)
+            JSValue(V8.getUndefined(), this)
         }
     }
 
     // SubscriptSupport
 
-    override val entries: MutableSet<MutableMap.MutableEntry<String, JSValue>>
+    override val entries: MutableSet<MutableMap.MutableEntry<String, Any>>
         get() {
             return mutableSetOf()
         }
@@ -49,7 +66,7 @@ class JSContext: MutableMap<String, JSValue> {
             return runtime.keys.count()
         }
 
-    override val values: MutableCollection<JSValue>
+    override val values: MutableCollection<Any>
         get() {
             return mutableListOf()
         }
@@ -58,12 +75,12 @@ class JSContext: MutableMap<String, JSValue> {
         return runtime.contains(key)
     }
 
-    override fun containsValue(value: JSValue): Boolean {
+    override fun containsValue(value: Any): Boolean {
         return false
     }
 
     override fun get(key: String): JSValue? {
-        return if (runtime.contains(key)) JSValue(runtime.get(key)) else null
+        return if (runtime.contains(key)) JSValue(runtime.get(key), this) else null
     }
 
     override fun isEmpty(): Boolean {
@@ -72,25 +89,26 @@ class JSContext: MutableMap<String, JSValue> {
 
     override fun clear() { }
 
-    override fun put(key: String, value: JSValue): JSValue? {
-        (value.managedValue as? Int)?.let { this.runtime.add(key, it) }
-        (value.managedValue as? Float)?.let { this.runtime.add(key, it.toDouble()) }
-        (value.managedValue as? Double)?.let { this.runtime.add(key, it) }
-        (value.managedValue as? String)?.let { this.runtime.add(key, it) }
-        (value.managedValue as? V8Value)?.let { this.runtime.add(key, it) }
+    override fun put(key: String, value: Any): Any? {
+        val v8Value = (value as? JSValue)?.v8Value ?: value
+        (v8Value as? Int)?.let { this.runtime.add(key, it) }
+        (v8Value as? Float)?.let { this.runtime.add(key, it.toDouble()) }
+        (v8Value as? Double)?.let { this.runtime.add(key, it) }
+        (v8Value as? String)?.let { this.runtime.add(key, it) }
+        (v8Value as? V8Value)?.let { this.runtime.add(key, it) }
         return value
     }
 
-    override fun putAll(from: Map<out String, JSValue>) {
+    override fun putAll(from: Map<out String, Any>) {
         from.forEach { this.put(it.key, it.value) }
     }
 
-    override fun remove(key: String): JSValue? {
+    override fun remove(key: String): Any? {
         val value = runtime.get(key)
         try {
             runtime.executeScript("$key = undefined")
         } catch (e: Exception) { }
-        return JSValue(value)
+        return JSValue(value, this)
     }
 
     companion object {

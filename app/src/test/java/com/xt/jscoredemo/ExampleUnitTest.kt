@@ -1,4 +1,4 @@
-package com.xt.jscore
+package com.xt.jscoredemo
 
 import org.junit.Test
 

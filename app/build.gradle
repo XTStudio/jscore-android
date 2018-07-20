@@ -7,7 +7,7 @@ apply plugin: 'kotlin-android-extensions'
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "com.xt.jscore"
+        applicationId "com.xt.jscoredemo"
         minSdkVersion 14
         targetSdkVersion 26
         versionCode 1
