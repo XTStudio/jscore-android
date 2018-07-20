@@ -26,8 +26,7 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
     val isArray: Boolean = (v8Value as? V8Value)?.v8Type == 5
 
     fun finalize() {
-        if (v8Value !is Releasable) { return }
-        val v8Value = (v8Value as? V8Value) ?: return
+        val v8Value = (v8Value as? V8Object) ?: return
         this.context.get()?.handler?.post {
             if (!v8Value.runtime.isReleased && !v8Value.isReleased) {
                 v8Value.release()
@@ -165,7 +164,7 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
     }
 
     private fun checkReleased(): Boolean {
-        (v8Value as? V8Value)?.takeIf { v8Value is Releasable }?.let {
+        (v8Value as? V8Object)?.let {
             return it.isReleased || it.runtime.isReleased
         }
         return false
