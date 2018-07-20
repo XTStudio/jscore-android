@@ -83,4 +83,11 @@ class JSValueTest {
         assertEquals(value.toList()!![3], 4)
     }
 
+    @Test
+    fun testSubscript() {
+        val value = JSValue.valueWithNewObjectInContext(context)
+        value["foo"] = "Hello, World!"
+        assertEquals((value["foo"] as JSValue).toString(), "Hello, World!")
+    }
+
 }

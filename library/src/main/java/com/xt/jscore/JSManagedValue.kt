@@ -22,14 +22,16 @@ class JSManagedValue(value: JSValue, owner: Any? = null) {
         private set
 
     init {
-        if (owner != null) {
-            val strongValue: Any? = (value.v8Value as? V8Value)?.twin() ?: value.v8Value
-            this.managedValue = JSValue(strongValue, value.context)
-            this.owner = WeakReference(owner)
-        }
-        else {
-            val weakValue: Any? = (value.v8Value as? V8Value)?.twin()?.setWeak() ?: value.v8Value
-            this.managedValue = JSValue(weakValue, value.context)
+        value.context.get()?.let { context ->
+            if (owner != null) {
+                val strongValue: Any? = (value.v8Value as? V8Value)?.twin() ?: value.v8Value
+                this.managedValue = JSValue(strongValue, context)
+                this.owner = WeakReference(owner)
+            }
+            else {
+                val weakValue: Any? = (value.v8Value as? V8Value)?.twin()?.setWeak() ?: value.v8Value
+                this.managedValue = JSValue(weakValue, context)
+            }
         }
     }
 

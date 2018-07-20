@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8
+import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.V8Value
 
 /**
@@ -40,13 +41,21 @@ class JSContext: MutableMap<String, Any> {
     }
 
     fun evaluateScript(script: String): JSValue? {
+        if (this.checkReleased()) { return null }
+        JSContext.currentContext = this
         return try {
             val returnValue = this.runtime.executeScript(script)
             JSValue(returnValue, this)
         } catch (e: Exception) {
             this.exceptionHandler?.invoke(this, e)
             JSValue(V8.getUndefined(), this)
+        } finally {
+            JSContext.currentContext = null
         }
+    }
+
+    private fun checkReleased(): Boolean {
+        return this.runtime.isReleased
     }
 
     // SubscriptSupport
@@ -58,11 +67,13 @@ class JSContext: MutableMap<String, Any> {
 
     override val keys: MutableSet<String>
         get() {
+            if (this.checkReleased()) { return mutableSetOf() }
             return runtime.keys.toMutableSet()
         }
 
     override val size: Int
         get() {
+            if (this.checkReleased()) { return 0 }
             return runtime.keys.count()
         }
 
@@ -72,6 +83,7 @@ class JSContext: MutableMap<String, Any> {
         }
 
     override fun containsKey(key: String): Boolean {
+        if (this.checkReleased()) { return false }
         return runtime.contains(key)
     }
 
@@ -80,6 +92,7 @@ class JSContext: MutableMap<String, Any> {
     }
 
     override fun get(key: String): JSValue? {
+        if (this.checkReleased()) { return null }
         return if (runtime.contains(key)) JSValue(runtime.get(key), this) else null
     }
 
@@ -90,12 +103,18 @@ class JSContext: MutableMap<String, Any> {
     override fun clear() { }
 
     override fun put(key: String, value: Any): Any? {
+        if (this.checkReleased()) { return value }
         val v8Value = (value as? JSValue)?.v8Value ?: value
         (v8Value as? Int)?.let { this.runtime.add(key, it) }
         (v8Value as? Float)?.let { this.runtime.add(key, it.toDouble()) }
         (v8Value as? Double)?.let { this.runtime.add(key, it) }
         (v8Value as? String)?.let { this.runtime.add(key, it) }
         (v8Value as? V8Value)?.let { this.runtime.add(key, it) }
+        (v8Value as? JSExport)?.let {
+            val v8Object = JSExportCreateV8Object(it, this)
+            this.runtime.add(key, v8Object)
+            v8Object.release()
+        }
         return value
     }
 
@@ -104,6 +123,7 @@ class JSContext: MutableMap<String, Any> {
     }
 
     override fun remove(key: String): Any? {
+        if (this.checkReleased()) { return null }
         val value = runtime.get(key)
         try {
             runtime.executeScript("$key = undefined")
@@ -114,7 +134,7 @@ class JSContext: MutableMap<String, Any> {
     companion object {
 
         var currentContext: JSContext? = null
-            private set
+            internal set
 
     }
 
