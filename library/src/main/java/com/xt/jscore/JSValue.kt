@@ -27,6 +27,9 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
 
     fun finalize() {
         val v8Value = (v8Value as? V8Object) ?: return
+        if (v8Value.isUndefined) {
+            return
+        }
         this.context.get()?.handler?.post {
             if (!v8Value.runtime.isReleased && !v8Value.isReleased) {
                 v8Value.release()
@@ -165,6 +168,9 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
 
     private fun checkReleased(): Boolean {
         (v8Value as? V8Object)?.let {
+            if (v8Value.isUndefined) {
+                return false
+            }
             return it.isReleased || it.runtime.isReleased
         }
         return false
