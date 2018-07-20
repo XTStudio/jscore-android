@@ -95,6 +95,12 @@ class JSValue(val v8Value: Any?, context: JSContext): MutableMap<String, Any> {
             (v8Value as? Double)?.let { v8Object.add(forProperty, it) }
             (v8Value as? String)?.let { v8Object.add(forProperty, it) }
             (v8Value as? V8Value)?.let { v8Object.add(forProperty, it) }
+            (v8Value as? JSExport)?.let {
+                val context = this.context.get() ?: return@let
+                val v8Object = JSExportCreateV8Object(it, context)
+                context.runtime.add(forProperty, v8Object)
+                v8Object.release()
+            }
         }
     }
 
