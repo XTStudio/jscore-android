@@ -24,7 +24,7 @@ class JSContext: MutableMap<String, Any> {
 
     internal val releasables: MutableSet<Releasable>
 
-    fun finalize() {
+    fun destory() {
         handler.post {
             releasables.forEach { it.release() }
             runtime.release(false)
