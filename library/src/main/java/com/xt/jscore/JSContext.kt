@@ -24,10 +24,23 @@ class JSContext: MutableMap<String, Any> {
 
     internal val releasables: MutableSet<Releasable>
 
-    fun destory() {
+    fun finalize() {
+        if (this.runtime.isReleased) { return }
         handler.post {
-            releasables.forEach { it.release() }
-            runtime.release(false)
+            try {
+                releasables.forEach { it.release() }
+                runtime.release(false)
+            } catch (e: Exception) {}
+        }
+    }
+
+    fun destory() {
+        if (this.runtime.isReleased) { return }
+        handler.post {
+            try {
+                releasables.forEach { it.release() }
+                runtime.release(false)
+            } catch (e: Exception) {}
         }
     }
 
