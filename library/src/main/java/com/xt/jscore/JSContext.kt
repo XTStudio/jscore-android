@@ -149,6 +149,10 @@ class JSContext: MutableMap<String, Any> {
         var currentContext: JSContext? = null
             internal set
 
+        fun setCurrentContext(context: JSContext?) {
+            this.currentContext = context
+        }
+
     }
 
 }
