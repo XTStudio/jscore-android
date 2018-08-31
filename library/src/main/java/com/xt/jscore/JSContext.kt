@@ -104,9 +104,9 @@ class JSContext: MutableMap<String, Any> {
         return false
     }
 
-    override fun get(key: String): JSValue? {
-        if (this.checkReleased()) { return null }
-        return if (runtime.contains(key)) JSValue(runtime.get(key), this) else null
+    override fun get(key: String): JSValue {
+        if (this.checkReleased()) { return JSValue.valueWithUndefinedInContext(this) }
+        return if (runtime.contains(key)) JSValue(runtime.get(key), this) else return JSValue.valueWithUndefinedInContext(this)
     }
 
     override fun isEmpty(): Boolean {

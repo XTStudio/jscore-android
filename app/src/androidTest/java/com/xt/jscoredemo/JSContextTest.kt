@@ -39,8 +39,15 @@ class JSContextTest {
     @Test
     fun testSubscript() {
         context["foo"] = "Hello, World!"
-        val fooValue = context["foo"] as JSValue
+        val fooValue = context["foo"]
         assertEquals(fooValue.toString(), "Hello, World!")
+    }
+
+    @Test
+    fun testGlobalObject() {
+        context.evaluateScript("global.testGlobalObject = 1;")
+        val fooValue = context["testGlobalObject"]
+        assertEquals(fooValue.toInt(), 1)
     }
 
 }
