@@ -4,7 +4,6 @@ import android.os.Handler
 import android.os.Looper
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8
-import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.V8Value
 
 /**
