@@ -9,7 +9,7 @@ import com.eclipsesource.v8.V8Value
 /**
  * Created by cuiminghui on 2018/7/19.
  */
-class JSContext: MutableMap<String, Any> {
+open class JSContext: MutableMap<String, Any> {
 
     val runtime = V8.createV8Runtime("global")
 
